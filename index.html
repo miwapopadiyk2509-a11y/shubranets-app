@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shubranets Quest Pro - Mini App</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--tg-theme-bg-color, #181228);
+            color: var(--tg-theme-text-color, #ffffff);
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-bottom: 90px;
+        }
+        h2 { color: #f43f5e; margin-bottom: 5px; text-align: center; }
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid #9333ea;
+            border-radius: 12px;
+            padding: 15px;
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 12px;
+            box-sizing: border-box;
+        }
+        .btn {
+            background-color: #f43f5e;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: bold;
+            margin-top: 6px;
+        }
+        .btn:active { background-color: #e11d48; }
+        .nav-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: #181228;
+            border-top: 2px solid #9333ea;
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0;
+            z-index: 100;
+        }
+        .nav-btn {
+            background: none;
+            border: none;
+            color: #ffffff;
+            font-size: 11px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .nav-btn span { font-size: 16px; margin-bottom: 2px; }
+        .tab-content { display: none; width: 100%; max-width: 400px; }
+        .tab-content.active { display: flex; flex-direction: column; align-items: center; }
+        .item-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0,0,0,0.2);
+            padding: 8px 10px;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>🌲 Shubranets Quest Pro 🍻</h2>
+    <p id="username" style="color: #fbbf24; margin-top: 0; text-align: center;">Вітаємо, селянине!</p>
+
+    <!-- 1. ПРОФІЛЬ -->
+    <div id="tab-profile" class="tab-content active">
+        <div class="card">
+            <h3>👤 Профіль селянина</h3>
+            <p>• Рівень: ⚡ Level <span id="lvl">1</span> (<span id="peasant_title">Новенький</span>)</p>
+            <p>• Досвід: <span id="xp">0</span> XP</p>
+            <p>• Перемог в іспитах: 🏆 <span id="wins">0</span></p>
+            <p>• Гаманець: 🪙 <span id="money">150</span> грн</p>
+            <p>• Зошит боргу: 📖 <span id="debt">0</span> грн</p>
+        </div>
+        <div class="card">
+            <h3>⚙️ Управління боргом</h3>
+            <button class="btn" onclick="borrowMoney()">🤝 Взяти в борг (+50 грн)</button>
+            <button class="btn" style="background-color: #8b5cf6;" onclick="payDebt()">💵 Погасити борг (-50 грн)</button>
+        </div>
+    </div>
+
+    <!-- 2. КВІЗ / ІСПИТИ -->
+    <div id="tab-quiz" class="tab-content">
+        <div class="card" id="quiz-card">
+            <h3>🎓 Освітньо-квестовий іспит</h3>
+            <p id="quiz-question">Готовий скласти іспит по Шубранцю?</p>
+            <div id="quiz-options">
+                <button class="btn" onclick="startQuiz()">🚀 Розпочати екзамен</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. МАГАЗИН ТА ІНВЕНТАР -->
+    <div id="tab-market" class="tab-content">
+        <div class="card">
+            <h3>🛒 Магазин Петровича</h3>
+            <div class="item-row"><span>🍾 Маленька літрова (40 грн)</span><button class="btn" style="width:auto; margin:0; padding:5px 10px;" onclick="buyItem('Маленька літрова', 40)">Купити</button></div>
+            <div class="item-row"><span>🔊 Колонка (80 грн)</span><button class="btn" style="width:auto; margin:0; padding:5px 10px;" onclick="buyItem('Колонка', 80)">Купити</button></div>
+            <div class="item-row"><span>🥤 Шейк (50 грн)</span><button class="btn" style="width:auto; margin:0; padding:5px 10px;" onclick="buyItem('Шейк', 50)">Купити</button></div>
+        </div>
+        <div class="card">
+            <h3>🎒 Твій рюкзак</h3>
+            <div id="inventory-list"><p>Пусто</p></div>
+            <button class="btn" onclick="searchBushes()">🔎 Пошук в кущах</button>
+        </div>
+    </div>
+
+    <!-- 4. НЕРУХОМІСТЬ -->
+    <div id="tab-houses" class="tab-content">
+        <div class="card">
+            <h3>🏡 Нерухомість Шубранця</h3>
+            <p>• Об'єкт: <strong id="house_name">Сільська хатинка [Lv.1]</strong></p>
+            <button class="btn" onclick="upgradeHouse()">⬆️ Покращити нерухомість</button>
+            <button class="btn" style="background-color: #059669;" onclick="buyHouse('Господарство з курями', 1000)">🏡 Купити Господарство (1000 грн)</button>
+        </div>
+    </div>
+
+    <!-- 5. ГАРАЖ ТА ІГРИ -->
+    <div id="tab-garage" class="tab-content">
+        <div class="card">
+            <h3>🚗 Гараж та Автопарк</h3>
+            <p>• База Таврії: Level <span id="garage_lvl">0</span></p>
+            <button class="btn" onclick="upgradeGarage()">🔧 Прокачати базу Таврії</button>
+            <div class="item-row" style="margin-top:10px;"><span>🛵 Скутер Саші (800 грн)</span><button class="btn" style="width:auto; margin:0; padding:5px 10px;" onclick="buyCar('Скутер Саші', 800)">Купити</button></div>
+        </div>
+        <div class="card">
+            <h3>🎲 Кістки з Петровичем</h3>
+            <button class="btn" onclick="playDice()">🎲 Кинути кубики (Ставка 50 грн)</button>
+        </div>
+        <div class="card">
+            <h3>🃏 Колекційні картки</h3>
+            <div id="cards-list"><p>Пусто</p></div>
+        </div>
+    </div>
+
+    <!-- Нижня панель навігації -->
+    <div class="nav-bar">
+        <button class="nav-btn" onclick="switchTab('profile')"><span>👤</span>Профіль</button>
+        <button class="nav-btn" onclick="switchTab('quiz')"><span>🎓</span>Іспит</button>
+        <button class="nav-btn" onclick="switchTab('market')"><span>🛒</span>Магазин</button>
+        <button class="nav-btn" onclick="switchTab('houses')"><span>🏡</span>Хата</button>
+        <button class="nav-btn" onclick="switchTab('garage')"><span>🚗</span>Гараж</button>
+    </div>
+
+    <script>
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+
+        let user = tg.initDataUnsafe?.user;
+        if (user) {
+            document.getElementById("username").innerText = `Вітаємо, ${user.first_name}!`;
+        }
+
+        let gameState = {
+            money: 150,
+            xp: 0,
+            wins: 0,
+            debt: 0,
+            garage_level: 0,
+            house_level: 1,
+            house_name: "Сільська хатинка",
+            inventory: ["Маленька літрова", "Шейк"],
+            cards: ["Валік (Common)"]
+        };
+
+        // Питання іспиту
+        const questions = [
+            { text: "Скільки коштує розливне пиво у Петровича?", options: ["35 грн", "20 грн", "55 грн"], correct: 0 },
+            { text: "Яку пісню Валік любить співати п'яний?", options: ["Довбуш", "Зірочка палай", "Кульбаби"], correct: 0 },
+            { text: "Де спав Міша?", options: ["Зупинка", "Дома", "У кущах"], correct: 0 },
+            { text: "Як Петрович нас називає?", options: ["Ссикавки й піцвінки", "Хлопчики й дівчатка", "Мужички"], correct: 0 }
+        ];
+        let currentQ = 0;
+
+        function updateUI() {
+            document.getElementById("money").innerText = gameState.money;
+            document.getElementById("xp").innerText = gameState.xp;
+            document.getElementById("wins").innerText = gameState.wins;
+            document.getElementById("debt").innerText = gameState.debt;
+            document.getElementById("garage_lvl").innerText = gameState.garage_level;
+            document.getElementById("house_name").innerText = `${gameState.house_name} [Lv.${gameState.house_level}]`;
+            
+            document.getElementById("inventory-list").innerHTML = gameState.inventory.length ? gameState.inventory.map(i => `<p>• ${i}</p>`).join('') : "<p>Пусто</p>";
+            document.getElementById("cards-list").innerHTML = gameState.cards.length ? gameState.cards.map(c => `<p>• ${c}</p>`).join('') : "<p>Пусто</p>";
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.getElementById('tab-' + tabName).classList.add('active');
+        }
+
+        // Квіз логіка
+        function startQuiz() {
+            currentQ = 0;
+            showQuestion();
+        }
+
+        function showQuestion() {
+            if (currentQ >= questions.length) {
+                gameState.wins += 1;
+                gameState.xp += 100;
+                gameState.money += 100;
+                updateUI();
+                document.getElementById("quiz-question").innerText = "🏆 Іспит успішно складено! Отримано +100 грн та +100 XP!";
+                document.getElementById("quiz-options").innerHTML = `<button class="btn" onclick="startQuiz()">Пройти знову</button>`;
+                return;
+            }
+            let q = questions[currentQ];
+            document.getElementById("quiz-question").innerText = `Питання ${currentQ + 1}: ${q.text}`;
+            let html = "";
+            q.options.forEach((opt, idx) => {
+                html += `<button class="btn" onclick="answerQuiz(${idx})">${opt}</button>`;
+            });
+            document.getElementById("quiz-options").innerHTML = html;
+        }
+
+        function answerQuiz(selected) {
+            let q = questions[currentQ];
+            if (selected === q.correct) {
+                currentQ++;
+                showQuestion();
+            } else {
+                document.getElementById("quiz-question").innerText = "❌ Помилка! Петрович розчарований...";
+                document.getElementById("quiz-options").innerHTML = `<button class="btn" onclick="startQuiz()">Спробувати знову</button>`;
+            }
+        }
+
+        function borrowMoney() {
+            gameState.money += 50;
+            gameState.debt += 50;
+            updateUI();
+        }
+
+        function payDebt() {
+            if (gameState.money < 50 || gameState.debt <= 0) { alert("Неможливо!"); return; }
+            gameState.money -= 50;
+            gameState.debt -= 50;
+            updateUI();
+        }
+
+        function buyItem(name, price) {
+            if (gameState.money < price) { alert("Мало грошей!"); return; }
+            gameState.money -= price;
+            gameState.inventory.push(name);
+            updateUI();
+        }
+
+        function searchBushes() {
+            let found = ["Колонка", "Под", "Шейк"][Math.floor(Math.random() * 3)];
+            gameState.inventory.push(found);
+            updateUI();
+            alert(`🔎 Знайдено: ${found}!`);
+        }
+
+        function upgradeHouse() {
+            let cost = gameState.house_level * 500;
+            if (gameState.money < cost) { alert("Мало грошей!"); return; }
+            gameState.money -= cost;
+            gameState.house_level++;
+            updateUI();
+        }
+
+        function buyHouse(name, price) {
+            if (gameState.money < price) { alert("Мало грошей!"); return; }
+            gameState.money -= price;
+            gameState.house_name = name;
+            gameState.house_level = 1;
+            updateUI();
+        }
+
+        function upgradeGarage() {
+            let cost = (gameState.garage_level + 1) * 100;
+            if (gameState.money < cost) { alert("Мало грошей!"); return; }
+            gameState.money -= cost;
+            gameState.garage_level++;
+            updateUI();
+        }
+
+        function buyCar(name, price) {
+            if (gameState.money < price) { alert("Мало грошей!"); return; }
+            gameState.money -= price;
+            gameState.cards.push(name);
+            updateUI();
+        }
+
+        function playDice() {
+            if (gameState.money < 50) { alert("Мало грошей!"); return; }
+            let u = Math.floor(Math.random()*6)+1, p = Math.floor(Math.random()*6)+1;
+            if (u > p) { gameState.money += 50; alert(`Виграш! ${u} проти ${p}`); }
+            else { gameState.money -= 50; alert(`Програш! ${u} проти ${p}`); }
+            updateUI();
+        }
+
+        updateUI();
+    </script>
+</body>
+</html>
